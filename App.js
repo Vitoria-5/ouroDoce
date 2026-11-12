@@ -1,18 +1,19 @@
 
 import React, { useState } from 'react';
-
 import {
   View,
   Text,
-  StyleSheet,
-  TouchableOpacity,
-  StatusBar,
   TextInput,
   ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
   Alert,
 } from 'react-native';
 
 import Cardapio from './Cardapio';
+import Carrinho from './Carrinho';
+import Entrega from './Entrega';
 
 const C = {
   fundo: '#FBF5ED',
@@ -28,38 +29,41 @@ export default function App() {
   const [tela, setTela] = useState('inicio');
   const [logado, setLogado] = useState(false);
   const [modoCadastro, setModoCadastro] = useState(false);
+
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
 
-  // Mantém o carrinho guardado ao trocar de tela.
   const [cart, setCart] = useState([]);
 
-  function abrirConta(cadastro) {
+  const [checkoutPendente, setCheckoutPendente] = useState(false);
+  const [telaAnteriorConta, setTelaAnteriorConta] = useState('cardapio');
+
+  function abrirConta(cadastro, origem = 'cardapio') {
     setModoCadastro(cadastro);
+    setTelaAnteriorConta(origem);
     setTela('conta');
   }
 
   function entrar() {
     if (!email.trim() || !senha.trim()) {
-      Alert.alert(
-        'Atenção',
-        'Preencha seu e-mail e sua senha.'
-      );
+      Alert.alert('Atenção', 'Preencha seu e-mail e sua senha.');
       return;
     }
 
     if (modoCadastro && !nome.trim()) {
-      Alert.alert(
-        'Atenção',
-        'Informe seu nome para criar a conta.'
-      );
+      Alert.alert('Atenção', 'Informe seu nome para criar a conta.');
       return;
     }
 
-    // Login e cadastro ainda são demonstrativos.
     setLogado(true);
-    setTela('cardapio');
+
+    if (checkoutPendente) {
+      setCheckoutPendente(false);
+      setTela('entrega');
+    } else {
+      setTela('cardapio');
+    }
 
     Alert.alert(
       'Ouro Doce',
@@ -69,213 +73,285 @@ export default function App() {
     );
   }
 
-  // CARDÁPIO
+  function continuarCompra() {
+    if (cart.length === 0) {
+      Alert.alert(
+        'Carrinho vazio',
+        'Adicione algum produto antes de continuar.'
+      );
+      return;
+    }
+
+    if (!logado) {
+      setCheckoutPendente(true);
+      abrirConta(true, 'carrinho');
+      return;
+    }
+
+    setTela('entrega');
+  }
+
   if (tela === 'cardapio') {
     return (
-      <Cardapio
-        logado={logado}
-        cart={cart}
-        setCart={setCart}
-        onRequireAuth={() => abrirConta(true)}
-        onLogin={() => abrirConta(false)}
-        onHome={() => setTela('inicio')}
-      />
+      <View style={styles.app}>
+        <StatusBar barStyle="dark-content" backgroundColor={C.fundo} />
+
+        <Cardapio
+          cart={cart}
+          setCart={setCart}
+          onOpenCart={() => setTela('carrinho')}
+          onHome={() => setTela('inicio')}
+        />
+      </View>
     );
   }
 
-  // CADASTRO E LOGIN
+  if (tela === 'carrinho') {
+    return (
+      <View style={styles.app}>
+        <StatusBar barStyle="dark-content" backgroundColor={C.fundo} />
+
+        <Carrinho
+          cart={cart}
+          setCart={setCart}
+          onVoltar={() => setTela('cardapio')}
+          onContinuar={continuarCompra}
+        />
+      </View>
+    );
+  }
+
+  if (tela === 'entrega') {
+    return (
+      <View style={styles.app}>
+        <StatusBar barStyle="dark-content" backgroundColor={C.fundo} />
+
+        <Entrega
+          cart={cart}
+          setCart={setCart}
+          onBack={() => setTela('carrinho')}
+          onFinish={() => setTela('cardapio')}
+        />
+      </View>
+    );
+  }
+
+  // TELA DE LOGIN E CADASTRO
   if (tela === 'conta') {
     return (
-      <ScrollView
-        contentContainerStyle={styles.conta}
-        showsVerticalScrollIndicator={false}
-      >
-        <StatusBar
-          barStyle="dark-content"
-          backgroundColor={C.fundo}
-        />
+      <View style={styles.app}>
+        <StatusBar barStyle="dark-content" backgroundColor={C.fundo} />
 
-        <TouchableOpacity
-          onPress={() => setTela('cardapio')}
+        <ScrollView
+          style={styles.rolagem}
+          contentContainerStyle={styles.conta}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.voltar}>
-            ← Voltar
-          </Text>
-        </TouchableOpacity>
+          <View style={styles.contaConteudo}>
+            <TouchableOpacity
+              style={styles.voltarArea}
+              onPress={() => {
+                setCheckoutPendente(false);
+                setTela(telaAnteriorConta);
+              }}
+            >
+              <Text style={styles.voltar}>← Voltar</Text>
+            </TouchableOpacity>
 
-        <Text style={styles.simbolo}>✦</Text>
-        <Text style={styles.marca}>OURO DOCE</Text>
-        <Text style={styles.submarca}>
-          DOCERIA ARTESANAL
-        </Text>
+            <View style={styles.logoQuadrado}>
+              <Text style={styles.simboloLogo}>✦</Text>
+            </View>
 
-        <Text style={styles.tituloConta}>
-          {modoCadastro
-            ? 'Crie sua conta'
-            : 'Que bom ter você de volta!'}
-        </Text>
+            <Text style={styles.marca}>OURO DOCE</Text>
+            <Text style={styles.submarca}>
+              DOCERIA ARTESANAL
+            </Text>
 
-        <Text style={styles.descricaoConta}>
-          {modoCadastro
-            ? 'Cadastre-se para continuar com seu pedido.'
-            : 'Entre para continuar sua experiência doce.'}
-        </Text>
+            <Text style={styles.tituloConta}>
+              {modoCadastro
+                ? 'Crie sua conta'
+                : 'Que bom ter você de volta!'}
+            </Text>
 
-        {modoCadastro && (
-          <TextInput
-            style={styles.campo}
-            placeholder="Seu nome completo"
-            placeholderTextColor="#A79789"
-            value={nome}
-            onChangeText={setNome}
-            autoCapitalize="words"
-          />
-        )}
+            <Text style={styles.descricaoConta}>
+              {modoCadastro
+                ? 'Cadastre-se para continuar com seu pedido.'
+                : 'Entre para continuar sua experiência doce.'}
+            </Text>
 
-        <TextInput
-          style={styles.campo}
-          placeholder="Seu e-mail"
-          placeholderTextColor="#A79789"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          value={email}
-          onChangeText={setEmail}
-        />
+            <View style={styles.formulario}>
+              {modoCadastro && (
+                <TextInput
+                  style={styles.campo}
+                  placeholder="Seu nome completo"
+                  placeholderTextColor="#A79789"
+                  value={nome}
+                  onChangeText={setNome}
+                  autoCapitalize="words"
+                />
+              )}
 
-        <TextInput
-          style={styles.campo}
-          placeholder="Sua senha"
-          placeholderTextColor="#A79789"
-          secureTextEntry
-          value={senha}
-          onChangeText={setSenha}
-        />
+              <TextInput
+                style={styles.campo}
+                placeholder="Seu e-mail"
+                placeholderTextColor="#A79789"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={email}
+                onChangeText={setEmail}
+              />
 
-        <TouchableOpacity
-          style={styles.botao}
-          onPress={entrar}
-        >
-          <Text style={styles.textoBotao}>
-            {modoCadastro
-              ? 'Criar minha conta'
-              : 'Entrar'}
-          </Text>
-        </TouchableOpacity>
+              <TextInput
+                style={styles.campo}
+                placeholder="Sua senha"
+                placeholderTextColor="#A79789"
+                secureTextEntry
+                value={senha}
+                onChangeText={setSenha}
+              />
 
-        <TouchableOpacity
-          onPress={() => setModoCadastro(!modoCadastro)}
-          style={styles.alternar}
-        >
-          <Text style={styles.alternarTexto}>
-            {modoCadastro
-              ? 'Já tem uma conta? Entrar'
-              : 'Ainda não tem conta? Cadastre-se'}
-          </Text>
-        </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.botao}
+                onPress={entrar}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.textoBotao}>
+                  {modoCadastro
+                    ? 'Criar minha conta'
+                    : 'Entrar'}
+                </Text>
+              </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.continuar}
-          onPress={() => setTela('cardapio')}
-        >
-          <Text style={styles.alternarTexto}>
-            Voltar ao cardápio sem cadastro
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
+              <TouchableOpacity
+                onPress={() => setModoCadastro(!modoCadastro)}
+                style={styles.alternar}
+              >
+                <Text style={styles.alternarTexto}>
+                  {modoCadastro
+                    ? 'Já tem uma conta? Entrar'
+                    : 'Ainda não tem conta? Cadastre-se'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.continuar}
+                onPress={() => {
+                  setCheckoutPendente(false);
+                  setTela('cardapio');
+                }}
+              >
+                <Text style={styles.alternarTexto}>
+                  Voltar ao cardápio sem cadastro
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
     );
   }
 
   // TELA INICIAL
   return (
-    <ScrollView
-      contentContainerStyle={styles.inicio}
-      showsVerticalScrollIndicator={false}
-    >
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor={C.fundo}
-      />
+    <View style={styles.app}>
+      <StatusBar barStyle="dark-content" backgroundColor={C.fundo} />
 
-      <View style={styles.logo}>
-        <View style={styles.logoQuadrado}>
-          <Text style={styles.simboloLogo}>✦</Text>
-        </View>
-
-        <Text style={styles.marca}>OURO DOCE</Text>
-
-        <Text style={styles.submarca}>
-          DOCERIA ARTESANAL
-        </Text>
-      </View>
-
-      <View style={styles.ilustracao}>
-        <Text style={styles.brilho}>✦</Text>
-        <Text style={styles.brownie}>🍫</Text>
-
-        <View style={styles.selo}>
-          <Text style={styles.seloTexto}>FEITO COM</Text>
-          <Text style={styles.seloTexto}>AMOR ♡</Text>
-        </View>
-      </View>
-
-      <Text style={styles.chamadaPequena}>
-        UM DOCE MOMENTO ESPERA POR VOCÊ
-      </Text>
-
-      <Text style={styles.titulo}>
-        A vida fica{'\n'}
-        mais doce com{'\n'}
-        <Text style={styles.destaque}>
-          Ouro Doce.
-        </Text>
-      </Text>
-
-      <Text style={styles.descricao}>
-        Brownies artesanais, sabores irresistíveis e
-        pequenos momentos que viram grandes lembranças.
-      </Text>
-
-      <TouchableOpacity
-        style={styles.botao}
-        onPress={() => setTela('cardapio')}
+      <ScrollView
+        style={styles.rolagem}
+        contentContainerStyle={styles.inicio}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.textoBotao}>
-          Ver o site sem cadastro →
-        </Text>
-      </TouchableOpacity>
+        <View style={styles.logo}>
+          <View style={styles.logoQuadrado}>
+            <Text style={styles.simboloLogo}>✦</Text>
+          </View>
 
-      <TouchableOpacity
-        style={styles.botaoSecundario}
-        onPress={() => abrirConta(false)}
-      >
-        <Text style={styles.textoSecundario}>
-          Entrar na minha conta
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() => abrirConta(true)}
-      >
-        <Text style={styles.cadastro}>
-          Ainda não tem conta?{' '}
-          <Text style={styles.cadastroDestaque}>
-            Cadastre-se
+          <Text style={styles.marca}>OURO DOCE</Text>
+          <Text style={styles.submarca}>
+            DOCERIA ARTESANAL
           </Text>
-        </Text>
-      </TouchableOpacity>
+        </View>
 
-      <Text style={styles.rodape}>
-        FEITO COM CARINHO E CHOCOLATE ♡
-      </Text>
-    </ScrollView>
+        <View style={styles.ilustracao}>
+          <Text style={styles.brilho}>✦</Text>
+          <Text style={styles.brownie}>🍫</Text>
+
+          <View style={styles.selo}>
+            <Text style={styles.seloTexto}>FEITO COM</Text>
+            <Text style={styles.seloTexto}>AMOR ♡</Text>
+          </View>
+        </View>
+
+        <Text style={styles.chamadaPequena}>
+          UM DOCE MOMENTO ESPERA POR VOCÊ
+        </Text>
+
+        <Text style={styles.titulo}>
+          A vida fica{'\n'}
+          mais doce com{'\n'}
+          <Text style={styles.destaque}>Ouro Doce.</Text>
+        </Text>
+
+        <Text style={styles.descricaoInicio}>
+          Brownies artesanais, sabores irresistíveis e pequenos
+          momentos que viram grandes lembranças.
+        </Text>
+
+        <TouchableOpacity
+          style={styles.botao}
+          onPress={() => setTela('cardapio')}
+        >
+          <Text style={styles.textoBotao}>
+            Ver o site sem cadastro →
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.botaoSecundario}
+          onPress={() => abrirConta(false, 'inicio')}
+        >
+          <Text style={styles.textoSecundario}>
+            Entrar na minha conta
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => abrirConta(true, 'inicio')}
+        >
+          <Text style={styles.cadastro}>
+            Ainda não tem conta?{' '}
+            <Text style={styles.cadastroDestaque}>
+              Cadastre-se
+            </Text>
+          </Text>
+        </TouchableOpacity>
+
+        <Text style={styles.rodape}>
+          FEITO COM CARINHO E CHOCOLATE ♡
+        </Text>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  app: {
+    flex: 1,
+    minHeight: 0,
+    width: '100%',
+    backgroundColor: C.fundo,
+  },
+
+  rolagem: {
+    flex: 1,
+    minHeight: 0,
+    width: '100%',
+  },
+
   inicio: {
     flexGrow: 1,
-    minHeight: '100%',
     backgroundColor: C.fundo,
     alignItems: 'center',
     justifyContent: 'center',
@@ -296,17 +372,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+    alignSelf: 'center',
   },
 
   simboloLogo: {
     color: '#F8E8D4',
     fontSize: 34,
-  },
-
-  simbolo: {
-    fontSize: 38,
-    color: C.caramelo,
-    textAlign: 'center',
   },
 
   marca: {
@@ -392,7 +463,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
-  descricao: {
+  descricaoInicio: {
     fontSize: 14,
     lineHeight: 23,
     textAlign: 'center',
@@ -410,6 +481,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     alignItems: 'center',
+    alignSelf: 'center',
     marginBottom: 12,
   },
 
@@ -417,6 +489,7 @@ const styles = StyleSheet.create({
     color: C.branco,
     fontSize: 14,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
 
   botaoSecundario: {
@@ -456,29 +529,43 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
+  // TELA DE CONTA CENTRALIZADA
   conta: {
     flexGrow: 1,
-    minHeight: '100%',
-    justifyContent: 'center',
     backgroundColor: C.fundo,
-    padding: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 30,
+  },
+
+  contaConteudo: {
+    width: '100%',
+    maxWidth: 430,
+    alignItems: 'center',
+  },
+
+  voltarArea: {
+    alignSelf: 'flex-start',
+    marginBottom: 25,
   },
 
   voltar: {
     color: C.marrom,
     fontSize: 15,
-    marginBottom: 28,
   },
 
   tituloConta: {
+    width: '100%',
     fontSize: 27,
     fontWeight: 'bold',
     color: C.escuro,
-    marginTop: 35,
+    marginTop: 30,
     textAlign: 'center',
   },
 
   descricaoConta: {
+    width: '100%',
     fontSize: 14,
     lineHeight: 21,
     color: C.texto,
@@ -487,7 +574,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
+  formulario: {
+    width: '100%',
+    alignItems: 'center',
+  },
+
   campo: {
+    width: '100%',
     backgroundColor: C.branco,
     borderColor: '#E4D6C8',
     borderWidth: 1,
@@ -496,10 +589,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 13,
     color: C.escuro,
+    textAlign: 'left',
   },
 
   alternar: {
     alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
     padding: 17,
   },
 
@@ -512,6 +608,8 @@ const styles = StyleSheet.create({
 
   continuar: {
     alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
     padding: 10,
     marginTop: 5,
   },

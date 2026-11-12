@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,96 +7,97 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Alert,
-} from "react-native";
+} from 'react-native';
 
-const PRODUTOS = [
+const produtos = [
   {
-    id: "1",
-    nome: "Brownie de Nutella",
-    descricao: "Brownie de chocolate com recheio cremoso de Nutella.",
+    id: '1',
+    nome: 'Brownie com Nutella',
+    descricao: 'Chocolate intenso e recheio cremoso',
     preco: 12,
-    categoria: "Brownies",
-    emoji: "🍫",
+    emoji: '🍫',
+    categoria: 'Brownies',
   },
   {
-    id: "2",
-    nome: "Brownie de Morango",
-    descricao: "Brownie artesanal com sabor de chocolate e morango.",
+    id: '2',
+    nome: 'Brownie de Morango',
+    descricao: 'Chocolate com toque de morango',
     preco: 14,
-    categoria: "Brownies",
-    emoji: "🍓",
+    emoji: '🍓',
+    categoria: 'Brownies',
   },
   {
-    id: "3",
-    nome: "Brownie Tradicional",
-    descricao: "Brownie macio com muito chocolate.",
+    id: '3',
+    nome: 'Brownie Tradicional',
+    descricao: 'Casquinha crocante e centro macio',
     preco: 8,
-    categoria: "Brownies",
-    emoji: "🍫",
+    emoji: '🍪',
+    categoria: 'Brownies',
   },
   {
-    id: "4",
-    nome: "Combo Felicidade",
-    descricao: "Uma seleção especial de doces para adoçar seu dia.",
+    id: '4',
+    nome: 'Combo Felicidade',
+    descricao: 'Dois brownies para compartilhar',
     preco: 22,
-    categoria: "Combos",
-    emoji: "🍬",
+    emoji: '🎁',
+    categoria: 'Combos',
   },
   {
-    id: "5",
-    nome: "Chocolate Gelado",
-    descricao: "Bebida cremosa de chocolate servida gelada.",
+    id: '5',
+    nome: 'Chocolate Gelado',
+    descricao: 'Uma bebida para acompanhar',
     preco: 9,
-    categoria: "Bebidas",
-    emoji: "🥤",
+    emoji: '🥤',
+    categoria: 'Bebidas',
   },
   {
-    id: "6",
-    nome: "Caixa Presente",
-    descricao: "Uma caixinha especial de doces para presentear.",
+    id: '6',
+    nome: 'Caixa Presente',
+    descricao: 'Uma surpresa doce e especial',
     preco: 30,
-    categoria: "Presentes",
-    emoji: "🎁",
+    emoji: '🎀',
+    categoria: 'Presentes',
   },
 ];
 
-const CATEGORIAS = [
-  "Todos",
-  "Brownies",
-  "Combos",
-  "Bebidas",
-  "Presentes",
-];
+const marrom = '#65432F';
+const fundo = '#FBF5ED';
 
 const dinheiro = (valor) =>
-  valor.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
+  `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
 
-export default function Cardapio({ navigation }) {
-  const [busca, setBusca] = useState("");
-  const [categoria, setCategoria] = useState("Todos");
-  const [carrinho, setCarrinho] = useState([]);
-  const [entrega, setEntrega] = useState("retirada");
-  const [distancia, setDistancia] = useState("2");
-  const [telaFinalizar, setTelaFinalizar] = useState(false);
+export default function Cardapio({
+  cart = [],
+  setCart,
+  onOpenCart,
+  onHome,
+}) {
+  const [busca, setBusca] = useState('');
+  const [categoria, setCategoria] = useState('Todos');
 
-  const produtosFiltrados = PRODUTOS.filter((produto) => {
-    const combinaCategoria =
-      categoria === "Todos" ||
-      produto.categoria === categoria;
+  const lista = produtos.filter((produto) =>
+    (categoria === 'Todos' || produto.categoria === categoria) &&
+    produto.nome.toLowerCase().includes(busca.toLowerCase())
+  );
 
-    const combinaBusca = produto.nome
-      .toLowerCase()
-      .includes(busca.toLowerCase());
+  const quantidade = cart.reduce(
+    (total, produto) =>
+      total + Number(produto.quantidade || 0),
+    0
+  );
 
-    return combinaCategoria && combinaBusca;
-  });
+  const subtotal = cart.reduce(
+    (total, produto) =>
+      total +
+      Number(produto.preco || 0) *
+      Number(produto.quantidade || 0),
+    0
+  );
 
-  const adicionar = (produto) => {
-    setCarrinho((atual) => {
+  function adicionar(produto) {
+    if (!setCart) return;
+
+    setCart((atual) => {
       const existente = atual.find(
         (item) => item.id === produto.id
       );
@@ -104,458 +105,379 @@ export default function Cardapio({ navigation }) {
       if (existente) {
         return atual.map((item) =>
           item.id === produto.id
-            ? { ...item, quantidade: item.quantidade + 1 }
+            ? {
+                ...item,
+                quantidade: item.quantidade + 1,
+              }
             : item
         );
       }
 
-      return [...atual, { ...produto, quantidade: 1 }];
+      return [
+        ...atual,
+        {
+          ...produto,
+          quantidade: 1,
+        },
+      ];
     });
-  };
-
-  const alterarQuantidade = (id, variacao) => {
-    setCarrinho((atual) =>
-      atual
-        .map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                quantidade: item.quantidade + variacao,
-              }
-            : item
-        )
-        .filter((item) => item.quantidade > 0)
-    );
-  };
-
-  const subtotal = carrinho.reduce(
-    (total, item) => total + item.preco * item.quantidade,
-    0
-  );
-
-  // Taxas fictícias para o projeto escolar.
-  const km = Number(distancia.replace(",", "."));
-
-  const taxaEntrega =
-    entrega === "retirada"
-      ? 0
-      : km <= 3
-      ? 5
-      : km <= 7
-      ? 8
-      : km <= 12
-      ? 12
-      : null;
-
-  const total =
-    subtotal + (taxaEntrega === null ? 0 : taxaEntrega);
-
-  const finalizarPedido = () => {
-    if (carrinho.length === 0) {
-      Alert.alert("Carrinho vazio", "Adicione algum doce primeiro.");
-      return;
-    }
-
-    if (
-      entrega === "entrega" &&
-      (!Number.isFinite(km) || km <= 0 || km > 12)
-    ) {
-      Alert.alert(
-        "Distância inválida",
-        "Para este exemplo, a entrega atende distâncias de até 12 km."
-      );
-      return;
-    }
-
-    Alert.alert(
-      "Ouro Doce 🍰",
-      "Cardápio e pedido preparados! A próxima etapa é integrar o cadastro e a finalização do pedido."
-    );
-  };
+  }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.cabecalho}>
-        <Text style={styles.logo}>🍰 Ouro Doce</Text>
-        <Text style={styles.subtitulo}>
-          Pequenos doces, grandes felicidades!
-        </Text>
+    <View style={styles.tela}>
+      <View style={styles.topo}>
+        <TouchableOpacity onPress={onHome}>
+          <Text style={styles.marca}>✦ OURO DOCE</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={onOpenCart}
+          style={styles.botaoTopoCarrinho}
+        >
+          <Text style={styles.iconeCarrinho}>
+            🛍️ {quantidade}
+          </Text>
+        </TouchableOpacity>
       </View>
-
-      <Text style={styles.titulo}>Nosso Cardápio</Text>
-
-      <TextInput
-        style={styles.busca}
-        placeholder="🔎 Procurar um doce..."
-        value={busca}
-        onChangeText={setBusca}
-      />
 
       <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categorias}
+        style={styles.rolagem}
+        contentContainerStyle={styles.conteudo}
+        showsVerticalScrollIndicator
+        keyboardShouldPersistTaps="handled"
       >
-        {CATEGORIAS.map((item) => (
-          <TouchableOpacity
-            key={item}
-            style={[
-              styles.botaoCategoria,
-              categoria === item && styles.categoriaAtiva,
-            ]}
-            onPress={() => setCategoria(item)}
-          >
-            <Text
+        <Text style={styles.chamada}>
+          DOCES MOMENTOS COMEÇAM AQUI
+        </Text>
+
+        <Text style={styles.titulo}>
+          Nosso cardápio
+        </Text>
+
+        <Text style={styles.descricao}>
+          Explore à vontade. Você só precisa de uma conta
+          para finalizar a compra.
+        </Text>
+
+        <TextInput
+          style={styles.busca}
+          placeholder="Buscar um doce..."
+          placeholderTextColor="#927D6C"
+          value={busca}
+          onChangeText={setBusca}
+        />
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.listaCategorias}
+        >
+          {[
+            'Todos',
+            'Brownies',
+            'Combos',
+            'Bebidas',
+            'Presentes',
+          ].map((categoriaItem) => (
+            <TouchableOpacity
+              key={categoriaItem}
+              onPress={() => setCategoria(categoriaItem)}
               style={[
-                styles.textoCategoria,
-                categoria === item && styles.textoCategoriaAtiva,
+                styles.categoria,
+                categoria === categoriaItem &&
+                  styles.categoriaAtiva,
               ]}
             >
-              {item}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {produtosFiltrados.map((produto) => (
-        <View key={produto.id} style={styles.card}>
-          <Text style={styles.emoji}>{produto.emoji}</Text>
-
-          <View style={styles.infoProduto}>
-            <Text style={styles.nomeProduto}>
-              {produto.nome}
-            </Text>
-
-            <Text style={styles.descricao}>
-              {produto.descricao}
-            </Text>
-
-            <Text style={styles.preco}>
-              {dinheiro(produto.preco)}
-            </Text>
-
-            <TouchableOpacity
-              style={styles.botaoAdicionar}
-              onPress={() => adicionar(produto)}
-            >
-              <Text style={styles.textoBotao}>
-                + Adicionar ao carrinho
+              <Text
+                style={[
+                  styles.textoCategoria,
+                  categoria === categoriaItem &&
+                    styles.textoCategoriaAtiva,
+                ]}
+              >
+                {categoriaItem}
               </Text>
             </TouchableOpacity>
-          </View>
-        </View>
-      ))}
+          ))}
+        </ScrollView>
 
-      {produtosFiltrados.length === 0 && (
-        <Text style={styles.vazio}>
-          Nenhum produto encontrado.
-        </Text>
-      )}
-
-      <View style={styles.secao}>
-        <Text style={styles.titulo}>🛒 Seu carrinho</Text>
-
-        {carrinho.length === 0 ? (
-          <Text style={styles.descricao}>
-            Seu carrinho está vazio.
-          </Text>
-        ) : (
-          carrinho.map((item) => (
-            <View key={item.id} style={styles.itemCarrinho}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.nomeProduto}>
-                  {item.nome}
+        <View style={styles.grade}>
+          {lista.map((produto) => (
+            <View
+              key={produto.id}
+              style={styles.produto}
+            >
+              <View style={styles.imagemProduto}>
+                <Text style={styles.emojiGrande}>
+                  {produto.emoji}
                 </Text>
-                <Text>{dinheiro(item.preco * item.quantidade)}</Text>
               </View>
 
-              <TouchableOpacity
-                onPress={() => alterarQuantidade(item.id, -1)}
-                style={styles.botaoQtd}
-              >
-                <Text>−</Text>
-              </TouchableOpacity>
-
-              <Text style={styles.quantidade}>
-                {item.quantidade}
+              <Text style={styles.nomeProduto}>
+                {produto.nome}
               </Text>
 
-              <TouchableOpacity
-                onPress={() => alterarQuantidade(item.id, 1)}
-                style={styles.botaoQtd}
-              >
-                <Text>+</Text>
-              </TouchableOpacity>
+              <Text style={styles.descricaoProduto}>
+                {produto.descricao}
+              </Text>
+
+              <View style={styles.linhaPreco}>
+                <Text style={styles.preco}>
+                  {dinheiro(produto.preco)}
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.botaoAdicionar}
+                  onPress={() => adicionar(produto)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.mais}>+</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          ))
+          ))}
+        </View>
+
+        {lista.length === 0 && (
+          <Text style={styles.vazio}>
+            Não encontramos produtos com essa busca.
+          </Text>
         )}
 
-        <Text style={styles.linhaTotal}>
-          Subtotal: {dinheiro(subtotal)}
+        <Text style={styles.rodape}>
+          OURO DOCE · FEITO COM CARINHO ♡
         </Text>
-      </View>
+      </ScrollView>
 
-      <View style={styles.secao}>
-        <Text style={styles.titulo}>📦 Entrega ou retirada</Text>
-
+      {quantidade > 0 && (
         <TouchableOpacity
-          style={[
-            styles.opcaoEntrega,
-            entrega === "retirada" && styles.opcaoSelecionada,
-          ]}
-          onPress={() => setEntrega("retirada")}
+          style={styles.carrinhoFlutuante}
+          onPress={onOpenCart}
+          activeOpacity={0.9}
         >
-          <Text>🏪 Retirar no local — grátis</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.opcaoEntrega,
-            entrega === "entrega" && styles.opcaoSelecionada,
-          ]}
-          onPress={() => setEntrega("entrega")}
-        >
-          <Text>🛵 Receber por entrega</Text>
-        </TouchableOpacity>
-
-        {entrega === "entrega" && (
-          <View>
-            <Text style={styles.rotulo}>
-              Distância estimada em quilômetros:
-            </Text>
-
-            <TextInput
-              style={styles.busca}
-              value={distancia}
-              onChangeText={setDistancia}
-              keyboardType="decimal-pad"
-              placeholder="Ex.: 2"
-            />
-
-            <Text style={styles.descricao}>
-              Até 3 km: R$ 5,00
-              {"\n"}De 3 a 7 km: R$ 8,00
-              {"\n"}De 7 a 12 km: R$ 12,00
-            </Text>
-
-            {taxaEntrega === null ? (
-              <Text style={styles.erro}>
-                Distância fora da área de entrega do exemplo.
-              </Text>
-            ) : (
-              <Text style={styles.linhaTotal}>
-                Taxa: {dinheiro(taxaEntrega)}
-              </Text>
-            )}
-          </View>
-        )}
-
-        <Text style={styles.total}>
-          Total: {dinheiro(total)}
-        </Text>
-
-        <TouchableOpacity
-          style={styles.botaoFinalizar}
-          onPress={finalizarPedido}
-        >
-          <Text style={styles.textoFinalizar}>
-            Continuar para finalizar pedido
+          <Text style={styles.textoBotao}>
+            Ver carrinho ({quantidade}) · {dinheiro(subtotal)}
           </Text>
         </TouchableOpacity>
-
-        <Text style={styles.aviso}>
-          O cadastro ou login será solicitado na etapa de
-          finalização do pedido, quando integrado ao aplicativo.
-        </Text>
-      </View>
-
-      <Text style={styles.rodape}>
-        Ouro Doce • Feito com carinho 💛
-      </Text>
-    </ScrollView>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  tela: {
     flex: 1,
-    backgroundColor: "#FFF9F1",
+    minHeight: 0,
+    backgroundColor: fundo,
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
   },
-  cabecalho: {
-    backgroundColor: "#6B3528",
-    padding: 28,
-    alignItems: "center",
+
+  topo: {
+    padding: 18,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderColor: '#E9DED2',
+    backgroundColor: fundo,
   },
-  logo: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: "#FFF0D2",
+
+  marca: {
+    fontSize: 19,
+    fontWeight: '900',
+    letterSpacing: 2,
+    color: marrom,
   },
-  subtitulo: {
-    color: "#FFE4BE",
-    marginTop: 8,
-    textAlign: "center",
+
+  botaoTopoCarrinho: {
+    padding: 5,
   },
+
+  iconeCarrinho: {
+    fontSize: 17,
+    color: marrom,
+    fontWeight: 'bold',
+  },
+
+  rolagem: {
+    flex: 1,
+    minHeight: 0,
+    width: '100%',
+  },
+
+  conteudo: {
+    flexGrow: 1,
+    padding: 20,
+    paddingBottom: 110,
+  },
+
+  chamada: {
+    color: '#B77B4B',
+    fontSize: 10,
+    letterSpacing: 2,
+    fontWeight: 'bold',
+    marginTop: 12,
+  },
+
   titulo: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#6B3528",
-    marginBottom: 14,
+    color: '#382419',
+    fontSize: 28,
+    fontWeight: '900',
+    marginTop: 8,
+    marginBottom: 10,
   },
+
+  descricao: {
+    color: '#927D6C',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 5,
+    marginBottom: 10,
+  },
+
   busca: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: "#E8D3BD",
-    borderRadius: 12,
-    padding: 13,
-    marginVertical: 10,
+    borderColor: '#E9DED2',
+    padding: 14,
+    borderRadius: 13,
+    marginVertical: 17,
+    color: '#382419',
   },
-  categorias: {
-    marginVertical: 10,
+
+  listaCategorias: {
+    flexGrow: 0,
   },
-  botaoCategoria: {
+
+  categoria: {
     paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: "#F0E1D2",
+    paddingHorizontal: 15,
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#E9DED2',
   },
+
   categoriaAtiva: {
-    backgroundColor: "#6B3528",
+    backgroundColor: marrom,
+    borderColor: marrom,
   },
+
   textoCategoria: {
-    color: "#6B3528",
-    fontWeight: "600",
+    color: marrom,
+    fontSize: 12,
   },
+
   textoCategoriaAtiva: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
+    fontWeight: 'bold',
   },
-  card: {
-    flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    marginVertical: 8,
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#F0E0D0",
-  },
-  emoji: {
-    fontSize: 43,
-    marginRight: 14,
-    alignSelf: "center",
-  },
-  infoProduto: {
-    flex: 1,
-  },
-  nomeProduto: {
-    fontSize: 17,
-    fontWeight: "bold",
-    color: "#6B3528",
-  },
-  descricao: {
-    color: "#78675D",
-    marginTop: 5,
-    lineHeight: 20,
-  },
-  preco: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#A66A22",
-    marginTop: 8,
-  },
-  botaoAdicionar: {
-    backgroundColor: "#6B3528",
-    padding: 11,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  textoBotao: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-  },
-  secao: {
-    backgroundColor: "#FFF0DF",
-    marginTop: 22,
-    marginHorizontal: 12,
-    padding: 16,
-    borderRadius: 16,
-  },
-  itemCarrinho: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E8D3BD",
-    gap: 10,
-  },
-  botaoQtd: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
-  },
-  quantidade: {
-    fontWeight: "bold",
-  },
-  linhaTotal: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 14,
-    color: "#6B3528",
-  },
-  opcaoEntrega: {
-    padding: 14,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    marginVertical: 5,
-    borderWidth: 1,
-    borderColor: "#E8D3BD",
-  },
-  opcaoSelecionada: {
-    borderColor: "#6B3528",
-    borderWidth: 2,
-  },
-  rotulo: {
-    marginTop: 12,
-    color: "#6B3528",
-    fontWeight: "600",
-  },
-  total: {
-    fontSize: 23,
-    fontWeight: "bold",
-    color: "#6B3528",
+
+  grade: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     marginTop: 20,
   },
-  botaoFinalizar: {
-    backgroundColor: "#A66A22",
-    padding: 16,
+
+  produto: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 11,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E9DED2',
+  },
+
+  imagemProduto: {
+    backgroundColor: '#EAD7C0',
     borderRadius: 12,
-    alignItems: "center",
-    marginTop: 14,
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  textoFinalizar: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    textAlign: "center",
+
+  emojiGrande: {
+    fontSize: 58,
   },
-  aviso: {
-    color: "#78675D",
-    marginTop: 12,
-    lineHeight: 19,
+
+  nomeProduto: {
+    color: '#382419',
+    fontSize: 13,
+    fontWeight: 'bold',
   },
-  erro: {
-    color: "#B42318",
+
+  descricaoProduto: {
+    color: '#927D6C',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 5,
+    minHeight: 32,
+  },
+
+  linhaPreco: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: 10,
   },
-  vazio: {
-    textAlign: "center",
-    padding: 20,
-    color: "#78675D",
+
+  preco: {
+    color: marrom,
+    fontWeight: '900',
+    fontSize: 14,
   },
-  rodape: {
-    textAlign: "center",
-    color: "#6B3528",
+
+  botaoAdicionar: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: marrom,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  mais: {
+    color: '#FFFFFF',
+    fontSize: 23,
+  },
+
+  carrinhoFlutuante: {
+    position: 'absolute',
+    bottom: 15,
+    left: 18,
+    right: 18,
+    padding: 16,
+    backgroundColor: marrom,
+    borderRadius: 14,
+    alignItems: 'center',
+    elevation: 5,
+  },
+
+  textoBotao: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+
+  vazio: {
+    color: '#927D6C',
+    textAlign: 'center',
     padding: 25,
+    lineHeight: 20,
+  },
+
+  rodape: {
+    textAlign: 'center',
+    color: '#927D6C',
+    fontSize: 10,
+    letterSpacing: 2,
+    marginTop: 30,
   },
 });
